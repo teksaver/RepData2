@@ -1,0 +1,24 @@
+---
+title: "StormDataAnalysis"
+author: "Sylvain Tenier"
+date: "21 septembre 2015"
+output: html_document
+---
+
+# Synopsis
+
+In this report we aim to describe which types of events are most harmful with respect to population health and have the greatest economic consequences in the United States between the years 1950 et 2011.
+Our overall hypothesis is that TODO
+To investigate this hypothesis, we obtained the NOAA Storm Database from the U.S. National Weather Service which is collected TODO
+We specifically obtained data for the years 1950 to november 2011 (the most recent data available). 
+From these data, we found that, TODO
+
+# Loading and Processing the Raw Data
+
+From the EPA Air Quality System we obtained data on fine particulate matter air pollution (PM2.5) that is monitored across the U.S. as part of the nationwide PM monitoring network. We obtained the files for the years 1999 and 2012.
+
+```{r}
+if (!file.exists("repdata_data_StormData.csv.bz2"))
+  download.file("https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2",destfile = "repdata_data_StormData.csv.bz2",method="curl")
+data <- read.csv("repdata_data_StormData.csv.bz2")
+```

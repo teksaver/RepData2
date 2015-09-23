@@ -16,12 +16,47 @@ From these data, we found that, TODO
 
 # Data Processing
 
-From the EPA Air Quality System we obtained data on fine particulate matter air pollution (PM2.5) that is monitored across the U.S. as part of the nationwide PM monitoring network. We obtained the files for the years 1999 and 2012.
+## Reading in the  data
 
-```{r}
+We first read in the provided data from the csv file included in the .bz2 archive. The data is a comma delimited file were fields are separated with the , character and missing values are coded as blank fields. String fields are further delimited with a set of "" characters to make sure commas inside a field is not mistakenly taken as a separator.
+
+The first line contains the titles which we read as they are, which is the default behaviour of the `read.csv` function. We will consider cleaning the names after we create a subset with the columns we need.
+
+```{r loading, cache=TRUE}
 if (!file.exists("repdata_data_StormData.csv.bz2"))
   download.file("https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2",destfile = "repdata_data_StormData.csv.bz2",method="curl")
 storms <- read.csv("repdata_data_StormData.csv.bz2")
 ```
+
+## Exploratory data analysis
+
+After reading the data we check the basic information
+
+```{r}
+dim(storms)
+head(storms)
+tail(storms)
+names(storms)
+```
+We can see we have 902297 rows and 37 columns.
+
+The first column we are interested in is the `EVTYPE` column. According to the documentation (section 2.1.1,  Storm Data Event Table) we should have xxx possible values. In order to check if the data is clean in that order, we create a vector with each possible values, and see if the data in the `EVTYPE` column match those values.
+
+```{r}
+events <- c("Astronomical Low Tide","Hurricane (Typhoon)","Avalanche","Ice Storm","Blizzard","Lake-Effect Snow","Coastal Flood","Lakeshore Flood","Cold/Wind Chill","Lightning","Debris Flow","Marine Hail","Dense Fog","Marine High Wind","Dense Smoke","Marine Strong Wind","Drought","Marine Thunderstorm Wind","Dust Devil","Rip Current","Dust Storm","Seiche","Excessive Heat","Sleet","Extreme Cold/Wind Chill","Storm Surge/Tide","Flash Flood","Strong Wind","Flood","Thunderstorm Wind","Frost/Freeze","Tornado","Funnel Cloud","Tropical Depression","Freezing Fog","Tropical Storm","Hail","Tsunami","Heat","Volcanic Ash","Heavy Rain","Waterspout","Heavy Snow","Wildfire","High Surf","Winter Storm","High Wind","Winter Weather")
+ table(storms$EVTYPE %in% events)
+```
+The results are so low that we must be missing something. We try again with a case-insensitive  comparison
+```{r}
+table(tolower(storms$EVTYPE) %in% tolower(events))
+```
+We see that around 30% of event types are not normalized. Let's see which one are more common.
+
+```{r}
+library(dplyr)
+notNormalizedCount <- storms %>% filter(!(tolower(EVTYPE) %in% tolower(events))) %>% group_by(EVTYPE) %>% summarise(total=n()) %>% arrange(-total)
+head(notNormalizedCount,n=10)
+```
+
 
 # Results

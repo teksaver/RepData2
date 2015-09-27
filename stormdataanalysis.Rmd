@@ -38,7 +38,7 @@ names(storms)
 ```
 We can see we have 902297 rows and 37 columns.
 
-The first column we are interested in is the `EVTYPE` column. According to the documentation (section 2.1.1,  Storm Data Event Table) we should have xxx possible values. In order to check if the data is clean in that order, we create a vector with each possible values, and see if the data in the `EVTYPE` column match those values.
+The first column we are interested in is the `EVTYPE` column. According to the documentation (section 2.1.1,  Storm Data Event Table) we should have 48 different values. In order to check if the data is clean in that order, we create a vector with each possible values, and see if the data in the `EVTYPE` column match those values.
 
 ```{r}
 events <- c("Astronomical Low Tide","Hurricane (Typhoon)","Avalanche","Ice Storm","Blizzard","Lake-Effect Snow","Coastal Flood","Lakeshore Flood","Cold/Wind Chill","Lightning","Debris Flow","Marine Hail","Dense Fog","Marine High Wind","Dense Smoke","Marine Strong Wind","Drought","Marine Thunderstorm Wind","Dust Devil","Rip Current","Dust Storm","Seiche","Excessive Heat","Sleet","Extreme Cold/Wind Chill","Storm Surge/Tide","Flash Flood","Strong Wind","Flood","Thunderstorm Wind","Frost/Freeze","Tornado","Funnel Cloud","Tropical Depression","Freezing Fog","Tropical Storm","Hail","Tsunami","Heat","Volcanic Ash","Heavy Rain","Waterspout","Heavy Snow","Wildfire","High Surf","Winter Storm","High Wind","Winter Weather")
@@ -96,15 +96,59 @@ The second part of data cleaning is taking into account the  harmfulness to popu
 storms <- storms  %>%  mutate(harmfulness=FATALITIES+INJURIES)
 ```
 
-Before normalizing our event types, we only keep the columns we need for the final results
+
+The last part is to normalize the significant events, as mentionned in our Exploratory Data Analysis. We choose to normalize all event types that
+
+1. have the 5 most occurences
+2. are the most economically significant
+3. are the most harmfully significant
+
+```{r}
+# display and normalize the 5 most common non-normalized occurrences
+head(notNormalizedCount,n=5)
+storms = storms %>% mutate(type=ifelse(tolower(storms$EVTYPE) %in% tolower(events),as.character(EVTYPE),
+                              ifelse(EVTYPE=='TSTM WIND','THUNDERSTORM WIND',
+                                     ifelse(EVTYPE=='THUNDERSTORM WINDS','THUNDERSTORM WIND',
+                                            ifelse(EVTYPE=='MARINE TSTM WIND','THUNDERSTORM WIND',
+                                                   ifelse(EVTYPE=='URBAN/SML STREAM FLD','FLASH FLOOD',
+                                                          ifelse(EVTYPE=='HIGH WINDS','HIGH WIND',
+                                                                 as.character(EVTYPE)))))))) 
+# find the 5 most economically non-normalized significant events
+notNormalizedEcoCount <- storms %>%
+    filter(!(tolower(EVTYPE) %in% tolower(events))) %>%
+    group_by(EVTYPE) %>% 
+    summarise(total=sum(ecocost)) %>%
+    arrange(-total)
+head(notNormalizedEcoCount,n=5)
+
+# find the 5 most harmfully non-normalized significant events
+notNormalizedHarmfulCount <- storms %>%
+    filter(!(tolower(EVTYPE) %in% tolower(events))) %>%
+    group_by(EVTYPE) %>% 
+    summarise(total=sum(harmfulness)) %>%
+    arrange(-total)
+head(notNormalizedHarmfulCount,n=5)
+
+```
+We see that the only non-normalized economically significant event is unknown and that no event with impact on health remains, so nothing to do.
+
+Finally, we only keep the columns we need for the final result computations
 
 ```{r}
 storms = storms %>%
-    transmute(type=EVTYPE,
+    transmute(type=type,
               harmfulness=harmfulness,
-              injuries=INJURIES,
               ecocost=ecocost)
 ```
 
-
 # Results
+
+We first report the 10 most economically significant events
+
+```{r}
+ecoCount <- storms %>%
+    group_by(type) %>% 
+    summarise(total=sum(ecocost)) %>%
+    arrange(-total)
+head(ecoCount,n=5)
+```

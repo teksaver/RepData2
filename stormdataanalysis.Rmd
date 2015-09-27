@@ -34,8 +34,6 @@ After reading the data we check the basic information
 
 ```{r}
 dim(storms)
-head(storms)
-tail(storms)
 names(storms)
 ```
 We can see we have 902297 rows and 37 columns.
@@ -54,8 +52,58 @@ We see that around 30% of event types are not normalized. Let's see which one ar
 
 ```{r}
 library(dplyr)
-notNormalizedCount <- storms %>% filter(!(tolower(EVTYPE) %in% tolower(events))) %>% group_by(EVTYPE) %>% summarise(total=n()) %>% arrange(-total)
+notNormalizedCount <- storms %>%
+    filter(!(tolower(EVTYPE) %in% tolower(events))) %>%
+    group_by(EVTYPE) %>% 
+    summarise(total=n()) %>%
+    arrange(-total)
 head(notNormalizedCount,n=10)
+```
+
+We will try to reassign the normalized type where it is most significant, meaning where high casulaties or damage where reported. The next step is thus to clean the data.
+
+## Data Cleaning
+
+
+First  we create a new `propcost` column for property damages by calculating the actual numeric  dollar amount from the `PROPDMG` and `PROPDMGEXP` columns. We assign 0 when the multiplier is neither K, M or B.
+
+```{r}
+storms= storms %>% 
+    mutate(propcost=ifelse(PROPDMGEXP=='K',as.numeric(PROPDMG*1000),
+                           ifelse(PROPDMGEXP=='M',as.numeric(PROPDMG*1000000),
+                                  ifelse(PROPDMGEXP=='B',as.numeric(PROPDMG*1000000000),
+                                         0))))
+```
+
+We do the same operation for damages to crops, by creating a `cropcost` column from the `CROPDMG` and `CROPDMGEXP` columns
+
+```{r}
+storms= storms %>% 
+    mutate(cropcost=ifelse(CROPDMGEXP=='K',as.numeric(CROPDMG*1000),
+                           ifelse(CROPDMGEXP=='M',as.numeric(CROPDMG*1000000),
+                                  ifelse(CROPDMGEXP=='B',as.numeric(CROPDMG*1000000000),
+                                         0))))
+```
+
+Finally we create a totalcost column for each event, which is the sum of the property and crop damages economic cost.
+```{r}
+storms <- storms  %>%  mutate(ecocost=propcost+cropcost)
+```
+
+The second part of data cleaning is taking into account the  harmfulness to population health. For this, we just sum the number of fatalities and injuries for each event
+
+```{r}
+storms <- storms  %>%  mutate(harmfulness=FATALITIES+INJURIES)
+```
+
+Before normalizing our event types, we only keep the columns we need for the final results
+
+```{r}
+storms = storms %>%
+    transmute(type=EVTYPE,
+              harmfulness=harmfulness,
+              injuries=INJURIES,
+              ecocost=ecocost)
 ```
 
 

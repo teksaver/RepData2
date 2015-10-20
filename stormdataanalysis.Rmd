@@ -1,18 +1,18 @@
 ---
 title: "Economic and health consequences of storm events in the US"
-author: "Sylvain Tenier"
-date: "21 septembre 2015"
+author: "Coursera Reproducible Research Assignment 2"
 output: html_document
 ---
 
 # Synopsis
 
 In this report we aim to describe which types of events are most harmful with respect to population health and have the greatest economic consequences in the United States between the years 1950 et 2011.
-Our overall hypothesis is that TODO
-To investigate this hypothesis, we obtained the NOAA Storm Database from the  National Oceanic
- and Atmospheric Administration (NOAA) which is collected TODO
+Our overall hypothesis is that danger to humans should come from extreme conditions, while economic consequences will be strongest where water is involved.
+To investigate this hypothesis, we obtained the NOAA Storm Database from the National Oceanic
+ and Atmospheric Administration (NOAA).
 We specifically obtained data for the years 1950 to november 2011 (the most recent data available). 
-From these data, we found that, TODO
+From these data, we found that tornadoes are by far the most dangerous events for human health, while floods generate the biggest costs.
+
 
 # Data Processing
 
@@ -64,7 +64,6 @@ We will try to reassign the normalized type where it is most significant, meanin
 
 ## Data Cleaning
 
-
 First  we create a new `propcost` column for property damages by calculating the actual numeric  dollar amount from the `PROPDMG` and `PROPDMGEXP` columns. We assign 0 when the multiplier is neither K, M or B.
 
 ```{r}
@@ -97,11 +96,7 @@ storms <- storms  %>%  mutate(harmfulness=FATALITIES+INJURIES)
 ```
 
 
-The last part is to normalize the significant events, as mentionned in our Exploratory Data Analysis. We choose to normalize all event types that
-
-1. have the 5 most occurences
-2. are the most economically significant
-3. are the most harmfully significant
+The last part is to normalize the significant events, as mentionned in our Exploratory Data Analysis. As an example we choose to normalize all event types that have the 5 most occurences
 
 ```{r}
 # display and normalize the 5 most common non-normalized occurrences
@@ -113,24 +108,8 @@ storms = storms %>% mutate(type=ifelse(tolower(storms$EVTYPE) %in% tolower(event
                                                    ifelse(EVTYPE=='URBAN/SML STREAM FLD','FLASH FLOOD',
                                                           ifelse(EVTYPE=='HIGH WINDS','HIGH WIND',
                                                                  as.character(EVTYPE)))))))) 
-# find the 5 most economically non-normalized significant events
-notNormalizedEcoCount <- storms %>%
-    filter(!(tolower(EVTYPE) %in% tolower(events))) %>%
-    group_by(EVTYPE) %>% 
-    summarise(total=sum(ecocost)) %>%
-    arrange(-total)
-head(notNormalizedEcoCount,n=5)
-
-# find the 5 most harmfully non-normalized significant events
-notNormalizedHarmfulCount <- storms %>%
-    filter(!(tolower(EVTYPE) %in% tolower(events))) %>%
-    group_by(EVTYPE) %>% 
-    summarise(total=sum(harmfulness)) %>%
-    arrange(-total)
-head(notNormalizedHarmfulCount,n=5)
 
 ```
-We see that the only non-normalized economically significant event is unknown and that no event with impact on health remains, so nothing to do.
 
 Finally, we only keep the columns we need for the final result computations
 
@@ -143,7 +122,25 @@ storms = storms %>%
 
 # Results
 
-We first report the 10 most economically significant events
+We first report the 5 events most harmful to health
+
+```{r}
+library(ggplot2)
+
+harmCount <- storms %>%
+    group_by(type) %>% 
+    summarise(total=sum(harmfulness)) %>%
+    arrange(-total)
+
+head(harmCount,n=5)
+
+ggplot(head(harmCount,n=5), aes(x=type, y=total)) + 
+  geom_bar(stat="identity")+
+  labs(x="event",y="count",title="5 most harmful events")
+
+```
+
+We then show the 5 most economically significant events
 
 ```{r}
 ecoCount <- storms %>%
@@ -151,4 +148,11 @@ ecoCount <- storms %>%
     summarise(total=sum(ecocost)) %>%
     arrange(-total)
 head(ecoCount,n=5)
+ggplot(head(ecoCount,n=5), aes(x=type, y=total)) + geom_bar(stat="identity")+
+    labs(x="event",y="cost ($)",title="5 most costly events")
+
+
 ```
+
+We can see that tornadoes are by far the most dangerous events for human health, while floods generate the biggest costs.
+
